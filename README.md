@@ -1,3 +1,30 @@
+# Bluesky Update
+
+The software here is incomplete and contains an as-is dump of the
+project folder as of November 2024. I've abandoned my intention of
+actually getting it to work for now, at least until Bluesky adds
+private account support. It should work well, for the most part
+
+Outstanding issues:
+- I still don't have an understanding of how logging configuration
+or package mangement is supposed to work. have fun
+- The software crashes when it doesn't have lat/long listed in the database
+for addresses it's given. My understanding is it's not supposed to do this
+- The database is supposed to store the tweet ids of completed tweets
+in the 'tweeted' field, but doesn't do that yet for cids
+- It's never been seriously used, or tested with anything other than
+a 3-item test database I made to avoid figuring out how to process
+geodata.
+
+for `bots.yaml` your file should look like this:
+```yaml
+streetview: 123456890123456890123456890123456890
+bsky:
+  username: everylotxyz.bsky.social
+  app_password: 2dav-fn3d-zz39-olkw
+```
+
+
 # every lot bot
 
 This library supports a Twitter bot that posts Google Streetview pictures of every property in an SQLite database. 

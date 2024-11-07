@@ -16,10 +16,10 @@
 
 import argparse
 import logging
-import twitter_bot_utils as tbu
+import yaml
+from atproto import Client
 from . import __version__ as version
 from .everylot import EveryLot
-
 
 def main():
     parser = argparse.ArgumentParser(description='every lot twitter bot')
@@ -30,14 +30,22 @@ def main():
                         help='Python format string use for searching Google')
     parser.add_argument('-p', '--print-format', type=str, default=None, metavar='STRING',
                         help='Python format string use for poster to Twitter')
-    tbu.args.add_default_args(parser, version=version, include=('config', 'dry-run', 'verbose', 'quiet'))
+    parser.add_argument('-d', '--dry-run', type=bool, default=False)
+    #tbu.args.add_default_args(parser, version=version, include=('config', 'dry-run', 'verbose', 'quiet'))
 
     args = parser.parse_args()
-    api = tbu.api.API(args)
 
     logger = logging.getLogger(args.screen_name)
     logger.debug('everylot starting with %s, %s', args.screen_name, args.database)
 
+    config = yaml.load(open("bots.yaml", 'r'), Loader=yaml.Loader)
+
+    client = Client()
+    profile = client.login(
+        config['bsky']['username'],
+        config['bsky']['app_password'],
+    )
+    logger.debug("logged in as " + profile.did)
     el = EveryLot(args.database,
                   logger=logger,
                   print_format=args.print_format,
@@ -53,21 +61,22 @@ def main():
 
     # Get the streetview image and upload it
     # ("sv.jpg" is a dummy value, since filename is a required parameter).
-    image = el.get_streetview_image(api.config['streetview'])
-    media = api.media_upload('sv.jpg', file=image)
+    image = el.get_streetview_image(config['streetview'])
 
-    # compose an update with all the good parameters
-    # including the media string.
-    update = el.compose(media.media_id_string)
+    update = el.get_post_data()
     logger.info(update['status'])
 
     if not args.dry_run:
         logger.debug("posting")
-        status = api.update_status(**update)
-        try:
-            el.mark_as_tweeted(status.id)
-        except AttributeError:
-            el.mark_as_tweeted('1')
+
+        image = image.read() # convert bytesio to bytes
+        alt = '{}, {}'.format(update['lat'], update['long'])
+        status = client.send_image(update['status'], image, alt)
+        # TODO: getting status.cid isn't working right now
+        # try:
+        #     el.mark_as_tweeted(status.cid)
+        # except AttributeError:
+        el.mark_as_tweeted('1')
 
 if __name__ == '__main__':
     main()

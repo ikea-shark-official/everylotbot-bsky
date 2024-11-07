@@ -66,6 +66,14 @@ class EveryLot(object):
         curs = self.conn.execute(QUERY.format(field), (value,))
         keys = [c[0] for c in curs.description]
         self.lot = dict(zip(keys, curs.fetchone()))
+        print(self.lot)
+
+        # convert string lat/long into floats
+        if type(self.lot['lat']) is str:
+            self.lot['lat'] = float(self.lot['lat'])
+        if type(self.lot['lon']) is str:
+            self.lot['lon'] = float(self.lot['lon'])
+        # TODO: this breaks if lat/long aren't listed, I don't think it's supposed to
 
     def aim_camera(self):
         '''Set field-of-view and pitch'''
@@ -124,6 +132,7 @@ class EveryLot(object):
             address = self.search_format.format(**self.lot)
 
         except KeyError:
+            print("no address found")
             self.logger.warn('Could not find street address, using lat/lon')
             return '{},{}'.format(self.lot['lat'], self.lot['lon'])
 
@@ -172,21 +181,20 @@ class EveryLot(object):
             self.logger.info('location with db coords: %s, %s', self.lot['lat'], self.lot['lon'])
             return '{},{}'.format(self.lot['lat'], self.lot['lon'])
 
-    def compose(self, media_id_string):
+    # this should be in bsky.py, i think
+    def get_post_data(self):
         '''
-        Compose a tweet, including media ids and location info.
-        :media_id_string str identifier for an image uploaded to Twitter
-        '''
-        self.logger.debug("media_id_string: %s", media_id_string)
+        everything needed for posts that isn't an image
 
+        returns {"status" (address/tweet text), "lat", "long" }
+        '''
         # Let missing addresses play through here, let the program leak out a bit
         status = self.print_format.format(**self.lot)
 
         return {
             "status": status,
-            "lat": self.lot.get('lat', 0.),
-            "long": self.lot.get('lon', 0.),
-            "media_ids": [media_id_string]
+            "lat": str(self.lot.get('lat', 0.)),
+            "long": (self.lot.get('lon', 0.)),
         }
 
     def mark_as_tweeted(self, status_id):
